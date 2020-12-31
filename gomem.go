@@ -162,6 +162,12 @@ func TranslateObject(p OParameters) (interface{}, error) {
 		texts = append(texts, p.Value.(string))
 	case []string:
 		texts = append(texts, p.Value.([]string)...)
+	case []interface{}:
+		_texts := []string{}
+		for _, v := range p.Value.([]interface{}) {
+			_texts = append(_texts, v.(string))
+		}
+		texts = _texts
 	}
 	// Translate
 	textsres := []string{}
@@ -179,12 +185,14 @@ func TranslateObject(p OParameters) (interface{}, error) {
 		}
 		textsres = append(textsres, r.Data.Text)
 	}
-	// Built object back
+	// Build object back
 	var v interface{}
 	switch p.Value.(type) {
 	case string:
 		v = textsres[0]
 	case []string:
+		v = textsres
+	case []interface{}:
 		v = textsres
 	}
 	return v, nil
