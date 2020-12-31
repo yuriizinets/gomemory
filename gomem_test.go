@@ -46,5 +46,28 @@ func TestBigTranslate(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Println(resp.Data.Text)
+	fmt.Println("\u001b[31m --- Manual check is needed --- \u001b[0m")
+	fmt.Println("\u001b[33m --- Source text: \u001b[0m", text)
+	fmt.Println("\u001b[33m --- Target text: \u001b[0m", resp.Data.Text)
+}
+
+func TestObjectTranslate(t *testing.T) {
+	value := []string{"I'm a first test", "I'm a second test"}
+	src := "en"
+	dest := "ru"
+
+	_result, err := TranslateObject(OParameters{
+		Value: value,
+		Src:   src,
+		Dest:  dest,
+		Email: "gen",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	result := _result.([]string)
+	if result[0] != "Я первый тест" || result[1] != "Я второй тест" {
+		t.Error("Result is incorrect")
+	}
 }

@@ -22,6 +22,19 @@ var EmailDomains = []string{
 	"pm.me",
 }
 
+// OParameters represents high-level parameters for Object translate
+type OParameters struct {
+	// API
+	Value interface{}
+	Src   string
+	Dest  string
+	Key   string
+	Email string
+
+	// Internal
+	Timeout time.Duration // Default is 10 seconds
+}
+
 // Parameters represents translate parameters
 type Parameters struct {
 	// API
@@ -30,7 +43,7 @@ type Parameters struct {
 	Dest     string
 	MimeType string
 	Key      string
-	Email    string // Will be used as "de" parameter to extend limits, use "rand" for random value
+	Email    string // Will be used as "de" parameter to extend limits, use "gen" for random value
 
 	// Internal
 	Timeout time.Duration // Default is 10 seconds
@@ -58,12 +71,6 @@ func translate(p Parameters) (Response, error) {
 	}
 	if p.Dest == "" {
 		return Response{}, errors.New("Dest paramter is required")
-	}
-	// Generate email, if needed
-	if p.Email == "gen" {
-		val := rand.Intn(1000000)
-		domain := EmailDomains[rand.Intn(len(EmailDomains))]
-		p.Email = strconv.Itoa(val) + "@" + domain
 	}
 	// Init url
 	turl, err := url.Parse(BaseURL)
@@ -109,6 +116,12 @@ func translate(p Parameters) (Response, error) {
 
 // Translate is a main high-level translation function
 func Translate(p Parameters) (Response, error) {
+	// Generate email, if needed
+	if p.Email == "gen" {
+		val := rand.Intn(1000000)
+		domain := EmailDomains[rand.Intn(len(EmailDomains))]
+		p.Email = strconv.Itoa(val) + "@" + domain
+	}
 	// Handle small text as-is
 	if len(p.Text) < 400 {
 		return translate(p)
@@ -139,4 +152,40 @@ func Translate(p Parameters) (Response, error) {
 			MatchLevel: 1,
 		},
 	}, nil
+}
+
+func TranslateObject(p OParameters) (interface{}, error) {
+	// Build list of texts from object
+	texts := []string{}
+	switch p.Value.(type) {
+	case string:
+		texts = append(texts, p.Value.(string))
+	case []string:
+		texts = append(texts, p.Value.([]string)...)
+	}
+	// Translate
+	textsres := []string{}
+	for _, text := range texts {
+		r, err := Translate(Parameters{
+			Text:    text,
+			Src:     p.Src,
+			Dest:    p.Dest,
+			Key:     p.Key,
+			Email:   p.Email,
+			Timeout: p.Timeout,
+		})
+		if err != nil {
+			return nil, err
+		}
+		textsres = append(textsres, r.Data.Text)
+	}
+	// Built object back
+	var v interface{}
+	switch p.Value.(type) {
+	case string:
+		v = textsres[0]
+	case []string:
+		v = textsres
+	}
+	return v, nil
 }
